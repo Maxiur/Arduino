@@ -1,90 +1,49 @@
 #include "pins.hpp"
 #include <util/delay.h>
-#include <avr/interrupt.h>
 
-class IRDecoder {
-public:
-    volatile bool dataReady{false};
-    volatile uint8_t address{0};
-    volatile uint8_t command{0};
+// Used PORTD to drive the 7-segment display. The mapping of segments to PORTD pins is as follows:
+// Segment A -> PD0
+// Segment B -> PD1
+// Segment C -> PD2
+// Segment D -> PD3
+// Segment E -> PD4
+// Segment F -> PD5
+// Segment G -> PD6
 
-    void init() {
-        pinMode(DDRD, PD2, PinMode::INPUT);
-        digitalWrite(PORTD, PD2, PinState::HIGH); // Enable pull-up resistor
-        
-        EICRA |= (1 << ISC01); // Trigger on falling edge
-        EICRA &= ~(1 << ISC00);
-        EIMSK |= (1 << INT0); // Enable external interrupt INT0
-
-        TCCR1A = 0; // Clear Timer1 control register A
-        TCCR1B = (1 << CS11); // Set Timer1 prescaler to 8
-    }
-
-    void handleInterrupt() {
-        uint16_t duration{TCNT1}; // Read Timer1 value
-        TCNT1 = 0; // Reset Timer1
-
-        uint16_t timeUs{duration / 2}; // Convert to microseconds (assuming 16MHz clock and prescaler of 8)
-        
-        // Identify the header ~13.5 ms
-        if (timeUs > 12000 && timeUs < 15000) {
-            bitCount = 0;
-            rawShiftRegister = 0;
-            return;
-        }
-        
-        // Reading bits
-        if (bitCount < 32) {
-            // Logic '1' is represented by a pulse about 2.25 ms
-            if (timeUs > 1800 && timeUs < 2600) {
-                rawShiftRegister |= (static_cast<uint32_t>(1) << (31 - bitCount));
-            }
-            // Logic '0' is represented by a pulse about 1.125 ms, so we ignore
-
-            ++bitCount;
-
-            if (bitCount == 32) {
-                address = static_cast<uint8_t>((rawShiftRegister >> 24) & 0xFF);
-                command = static_cast<uint8_t>((rawShiftRegister >> 8) & 0xFF);
-                dataReady = true;
-            }
-        }
-
-    }
-
-private:
-    volatile uint8_t bitCount{0};
-    volatile uint32_t rawShiftRegister{0};
+enum class SevenSegmentDigit: uint8_t {
+    ZERO = 0x3F, // 0b00111111
+    ONE = 0x06,  // 0b00000110
+    TWO = 0x5B,  // 0b01011011
+    THREE = 0x4F, // 0b01001111
+    FOUR = 0x66, // 0b01100110
+    FIVE = 0x6D, // 0b01101101
+    SIX = 0x7D,  // 0b01111101
+    SEVEN = 0x07, // 0b00000111
+    EIGHT = 0x7F, // 0b01111111
+    NINE = 0x6F // 0b01101111
 };
 
-IRDecoder irDecoder;
-
-ISR(INT0_vect) {
-    irDecoder.handleInterrupt();
-}
+constexpr uint8_t digits[] = {
+    static_cast<uint8_t>(SevenSegmentDigit::ZERO),
+    static_cast<uint8_t>(SevenSegmentDigit::ONE),
+    static_cast<uint8_t>(SevenSegmentDigit::TWO),
+    static_cast<uint8_t>(SevenSegmentDigit::THREE),
+    static_cast<uint8_t>(SevenSegmentDigit::FOUR),
+    static_cast<uint8_t>(SevenSegmentDigit::FIVE),
+    static_cast<uint8_t>(SevenSegmentDigit::SIX),
+    static_cast<uint8_t>(SevenSegmentDigit::SEVEN),
+    static_cast<uint8_t>(SevenSegmentDigit::EIGHT),
+    static_cast<uint8_t>(SevenSegmentDigit::NINE)
+};
 
 int main(void) { 
-    irDecoder.init();
-    UART::init(9600); // Initialize UART with 9600 baud rate
-    sei(); // Enable global interrupts
-
-    UART::sendString("IR Decoder Initialized\r\n");
+    DDRD = 0xFF; // Set all pins of PORTD as output
+    PORTD = 0x00; // Initialize PORTD to LOW
 
     while (true) {
-        if (irDecoder.dataReady) {
-            // Process the received address and command
-            uint8_t address{irDecoder.address};
-            uint8_t command{irDecoder.command};
-
-            // Reset data ready flag
-            irDecoder.dataReady = false;
-            
-            // Other stuff
-            UART::sendString("Adres: ");
-            UART::sendHex8(address);
-            UART::sendString(" | Komenda: ");
-            UART::sendHex8(command);
-            UART::sendString("\r\n");
+        for (uint8_t i{0}; i <= 9; ++i) {
+            PORTD = digits[i];
+            _delay_ms(1000); // Wait for 1 second
         }
     }
 
