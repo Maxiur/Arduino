@@ -1,50 +1,60 @@
 #include "pins.hpp"
 #include <util/delay.h>
 
-// Used PORTD to drive the 7-segment display. The mapping of segments to PORTD pins is as follows:
-// Segment A -> PD0
-// Segment B -> PD1
-// Segment C -> PD2
-// Segment D -> PD3
-// Segment E -> PD4
-// Segment F -> PD5
-// Segment G -> PD6
+void lcd_data(unsigned char data) {
+    PORTD = data; // Send data to PORTD
+    digitalWrite(PORTB, PB0, PinState::HIGH); // RS = 1 for data
+    digitalWrite(PORTB, PB1, PinState::LOW); // RW = 0 for write
+    digitalWrite(PORTB, PB2, PinState::HIGH); // Enable clock = 1
+    _delay_ms(10); // Wait for data to be latched
+    digitalWrite(PORTB, PB2, PinState::LOW); // Enable clock = 0
+}
 
-enum class SevenSegmentDigit: uint8_t {
-    ZERO = 0x3F, // 0b00111111
-    ONE = 0x06,  // 0b00000110
-    TWO = 0x5B,  // 0b01011011
-    THREE = 0x4F, // 0b01001111
-    FOUR = 0x66, // 0b01100110
-    FIVE = 0x6D, // 0b01101101
-    SIX = 0x7D,  // 0b01111101
-    SEVEN = 0x07, // 0b00000111
-    EIGHT = 0x7F, // 0b01111111
-    NINE = 0x6F // 0b01101111
-};
+void lcd_command(unsigned char command) {
+    PORTD = command;
+    digitalWrite(PORTB, PB0, PinState::LOW); // RS = 0 for command
+    digitalWrite(PORTB, PB1, PinState::LOW); // RW = 0 for write
+    digitalWrite(PORTB, PB2, PinState::HIGH); // Enable clock = 1
+    _delay_ms(10); // Wait for command to be latched
+    digitalWrite(PORTB, PB2, PinState::LOW); // Enable clock = 0
+}
 
-constexpr uint8_t digits[] = {
-    static_cast<uint8_t>(SevenSegmentDigit::ZERO),
-    static_cast<uint8_t>(SevenSegmentDigit::ONE),
-    static_cast<uint8_t>(SevenSegmentDigit::TWO),
-    static_cast<uint8_t>(SevenSegmentDigit::THREE),
-    static_cast<uint8_t>(SevenSegmentDigit::FOUR),
-    static_cast<uint8_t>(SevenSegmentDigit::FIVE),
-    static_cast<uint8_t>(SevenSegmentDigit::SIX),
-    static_cast<uint8_t>(SevenSegmentDigit::SEVEN),
-    static_cast<uint8_t>(SevenSegmentDigit::EIGHT),
-    static_cast<uint8_t>(SevenSegmentDigit::NINE)
-};
+void lcd_string(const unsigned char *str) {
+    while (*str) {
+        lcd_data(*str++);
+    }
+}
+
+void lcd_init(void) {
+    _delay_ms(50); // Wait for LCD to power up
+
+    lcd_command(0x30);
+    _delay_ms(5);
+    lcd_command(0x30);
+    _delay_us(150);
+    lcd_command(0x30);
+
+    lcd_command(0x38); // 16 column, 2 row format, 5x7 dots
+    lcd_command(0x06); // increment cursor after char is displayed
+    lcd_command(0x0C); // Display on, cursor off
+    lcd_command(0x01); // Clear display
+}
 
 int main(void) { 
     DDRD = 0xFF; // Set all pins of PORTD as output
+    DDRB = 0x07; // Set PB0, PB1, PB2 as output
     PORTD = 0x00; // Initialize PORTD to LOW
+    PORTB = 0x00; // Initialize PORTB to LOW
+
+    lcd_init(); // Initialize the LCD
+    lcd_command(0x80); // Set cursor to the beginning of the first line
+    lcd_string("Hello, World!"); // Display a string on the LCD
+    _delay_ms(50); // Wait for 50ms
+    lcd_command(0xC0); // Set cursor to the beginning of the second line
+    lcd_string("LCD Test"); // Display another string on the LCD
 
     while (true) {
-        for (uint8_t i{0}; i <= 9; ++i) {
-            PORTD = digits[i];
-            _delay_ms(1000); // Wait for 1 second
-        }
+        
     }
 
     return 0;
