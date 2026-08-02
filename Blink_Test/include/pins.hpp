@@ -14,19 +14,6 @@ enum class PinMode : bool {
   ENABLE_PULLUP = true
 };
 
-struct Bit {
-  uint8_t mask;
-
-  constexpr Bit(uint8_t bit) : mask(static_cast<uint8_t>(1 << bit)) {}
-
-  constexpr Bit operator| (const Bit &other) const {
-    return Bit(static_cast<uint8_t>(mask | other.mask), true);
-  }
-
-  private:
-    constexpr Bit(uint8_t raw_mask, bool) : mask(raw_mask) {}
-};
-
 // DDRx - Data Direction Register
 inline void pinMode(volatile uint8_t &ddr, uint8_t pin, PinMode mode) {
   if (mode == PinMode::OUTPUT) {
@@ -55,18 +42,6 @@ inline void digitalToggle(volatile uint8_t &pin_reg, uint8_t pin) {
   pin_reg = (1 << pin);
 }
 
-inline void setBits(volatile uint8_t &reg, Bit bits) {
-  reg |= bits.mask;
-}
-
-inline void clearBits(volatile uint8_t &reg, Bit bits) {
-  reg &= static_cast<uint8_t>(~bits.mask);
-}
-
-inline void updateBits(volatile uint8_t &reg, Bit clear_mask, Bit set_mask) {
-  reg = static_cast<uint8_t>((reg & ~clear_mask.mask) | set_mask.mask);
-}
-
 void pwmInit(void) {
     pinMode(DDRD, PD3, PinMode::OUTPUT);
 
@@ -78,31 +53,3 @@ void pwmInit(void) {
 void analogWritePD3(uint8_t duty) {
     OCR2B = duty;
 }
-
-class UART {
-public:
-    static void init(uint32_t baud = 9600) {
-        uint16_t ubrr = (F_CPU / (16 * baud)) - 1;
-        UBRR0H = (ubrr >> 8);
-        UBRR0L = ubrr;
-        UCSR0B = (1 << TXEN0); // Włącz nadajnik (TX)
-        UCSR0C = (1 << UCSZ01) | (1 << UCSZ00); // Format 8n1
-    }
-
-    static void sendChar(char c) {
-        while (!(UCSR0A & (1 << UDRE0))); // Czekaj na wolny bufor
-        UDR0 = c;
-    }
-
-    static void sendString(const char* str) {
-        while (*str) sendChar(*str++);
-    }
-
-    // Pomocnicza funkcja do wypisywania liczb w HEX (np. 0x80)
-    static void sendHex8(uint8_t val) {
-        const char hexChars[] = "0123456789ABCDEF";
-        sendString("0x");
-        sendChar(hexChars[(val >> 4) & 0x0F]);
-        sendChar(hexChars[val & 0x0F]);
-    }
-};

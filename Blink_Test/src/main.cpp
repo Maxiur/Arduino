@@ -2,34 +2,43 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-ISR(TIMER1_OVF_vect) {
-    // Reset the timer count for the next overflow
-    TCNT1 = 49911; // 65536 - (16,000,000 / 1024) = 49911
+ISR(TIMER1_COMPA_vect) {
+    // Reset timer counter
+    TCNT1 = 0;
 
-    // Toggle the LED connected to PB5
+    // Toggle PB5 led
     digitalToggle(PINB, PB5);
 }
 
 int main(void) {
-    pinMode(DDRB, PB5, PinMode::OUTPUT); // Set PB5 as output (built-in LED on Arduino Uno
-    digitalWrite(PORTB, PB5, PinState::LOW); // Ensure the LED is initially off
+    pinMode(DDRB, PB5, PinMode::OUTPUT); // Set PB5 as output pin
+    digitalWrite(PINB, PB5, PinState::LOW); // Set PB5 low
 
-    // Page 15.11.1
-    // Set Timer to Normal Mode
-    TCCR1A &= ~(WGM10 | WGM11); // Clear WGM10 and WGM11 bits for Normal mode
-    TCCR1B &= ~(WGM12 | WGM13); // Clear WGM12 and WGM13 bits for Normal mode
-
-    // Load the period for the timer for 1 second delay
-    TCNT1 = 49911; // 65536 - (16,000,000 / 1024) = 49911
-
-    // Enable Timer1 overflow interrupt
-    TIMSK1 |= (1 << TOIE1);
-
-    // Page 15.11.2
-    // Set the Prescaler to 1024
-    TCCR1B |= (1 << CS12) | (1 << CS10); // Set prescaler to 1024
-    TCCR1B &= ~(1 << CS11); // Clear CS11
     sei(); // Enable global interrupts
+
+    TIMSK1 |= (1<< OCIE1A); // Enable Timer1 output compare interrupt
+
+    // Normal Mode for timer
+    TCCR1A &= (~(1 << WGM10)) & (~(1 << WGM11));
+    TCCR1B &= (~(1 << WGM12)) & (~(1 << WGM13));
+    
+
+    // Output compare mode
+    TCCR1A &= ~(1 << COM1A1);
+    TCCR1A |= (1 << COM1A0);
+
+    // Set prescaler to 1024
+    TCCR1B |= (1 << CS12) | (1 << CS10);
+    TCCR1B &= ~(1 << CS11);
+
+    // Start timer with initial value
+    TCNT1 = 0;
+
+    // Set output compare value for 1 second delay
+    OCR1A = 15624;
+
+    // Using PB1 as output pin
+    pinMode(DDRB, PB1, PinMode::OUTPUT);
 
     while (true) {
         
