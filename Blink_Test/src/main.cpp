@@ -2,30 +2,34 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-ISR(INT0_vect) {
-    digitalWrite(PORTB, PB5, PinState::HIGH);
-}
+ISR(TIMER1_OVF_vect) {
+    // Reset the timer count for the next overflow
+    TCNT1 = 49911; // 65536 - (16,000,000 / 1024) = 49911
 
-ISR(INT1_vect) {
-    digitalWrite(PORTB, PB5, PinState::LOW);
+    // Toggle the LED connected to PB5
+    digitalToggle(PINB, PB5);
 }
 
 int main(void) {
-    pinMode(DDRB, PB5, PinMode::OUTPUT); // Set PB5 as output
-    digitalWrite(PORTB, PB5, PinState::LOW); // Set PB5 low
+    pinMode(DDRB, PB5, PinMode::OUTPUT); // Set PB5 as output (built-in LED on Arduino Uno
+    digitalWrite(PORTB, PB5, PinState::LOW); // Ensure the LED is initially off
 
-    pinMode(DDRD, PD2, PinMode::INPUT);  // Set PD2 as input
-    pinMode(DDRD, PD3, PinMode::INPUT);  // Set PD3 as input
+    // Page 15.11.1
+    // Set Timer to Normal Mode
+    TCCR1A &= ~(WGM10 | WGM11); // Clear WGM10 and WGM11 bits for Normal mode
+    TCCR1B &= ~(WGM12 | WGM13); // Clear WGM12 and WGM13 bits for Normal mode
 
-    // Page 12.2.2
-    EIMSK = 0x03; // Enable external interrupts INT0 and INT1 
-    // Page 12.2.1
-    EICRA = 0x0F; // Set INT0 and INT1 to trigger on rising edge
+    // Load the period for the timer for 1 second delay
+    TCNT1 = 49911; // 65536 - (16,000,000 / 1024) = 49911
 
-    // digitalWrite(SREG, SREG_I, PinState::HIGH); // Enable global interrupts (7th bit of SREG)
-    // sei(); // Enable global interrupts
-    // Page 6.3.1
-    SREG = 0x80; // Set the I-bit in SREG to enable interrupts
+    // Enable Timer1 overflow interrupt
+    TIMSK1 |= (1 << TOIE1);
+
+    // Page 15.11.2
+    // Set the Prescaler to 1024
+    TCCR1B |= (1 << CS12) | (1 << CS10); // Set prescaler to 1024
+    TCCR1B &= ~(1 << CS11); // Clear CS11
+    sei(); // Enable global interrupts
 
     while (true) {
         
