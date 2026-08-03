@@ -1,46 +1,37 @@
 #include "pins.hpp"
 #include <util/delay.h>
-#include <avr/interrupt.h>
-
-ISR(TIMER1_COMPA_vect) {
-    // Reset timer counter
-    TCNT1 = 0;
-
-    // Toggle PB5 led
-    digitalToggle(PINB, PB5);
-}
-
 int main(void) {
-    pinMode(DDRB, PB5, PinMode::OUTPUT); // Set PB5 as output pin
-    digitalWrite(PINB, PB5, PinState::LOW); // Set PB5 low
+    // Fast PWM mode, 10-bit resolution
+    TCCR1A |= (1 << WGM10) | (1 << WGM11);
+    TCCR1B |= (1 << WGM12);
+    TCCR1B &= ~(1 << WGM13);
 
-    sei(); // Enable global interrupts
+    // Set PWN mode to non-inverting
+    TCCR1A |= (1 << COM1A1);
+    TCCR1A &= ~(1 << COM1A0);
 
-    TIMSK1 |= (1<< OCIE1A); // Enable Timer1 output compare interrupt
+    // Precaler for the timer for setting PWN frequency (64)
+    // Clock 16MHz -> 16,000,000 / 64 = 250,000 Hz
+    TCCR1B |= (1 << CS11) | (1 << CS10);
+    TCCR1B &= ~(1 << CS12);
 
-    // Normal Mode for timer
-    TCCR1A &= (~(1 << WGM10)) & (~(1 << WGM11));
-    TCCR1B &= (~(1 << WGM12)) & (~(1 << WGM13));
-    
-
-    // Output compare mode
-    TCCR1A &= ~(1 << COM1A1);
-    TCCR1A |= (1 << COM1A0);
-
-    // Set prescaler to 1024
-    TCCR1B |= (1 << CS12) | (1 << CS10);
-    TCCR1B &= ~(1 << CS11);
-
-    // Start timer with initial value
-    TCNT1 = 0;
-
-    // Set output compare value for 1 second delay
-    OCR1A = 15624;
-
-    // Using PB1 as output pin
+    // Set the output pin for PWM (OC1A) as output
     pinMode(DDRB, PB1, PinMode::OUTPUT);
-
+ 
     while (true) {
+        // Set the duty cycle
+        // 0-1023 for 10-bit resolution
+        for (uint16_t dutyCycle = 0; dutyCycle <= 1023; ++dutyCycle) {
+            OCR1A = dutyCycle;
+            _delay_ms(2);
+        }
+        _delay_ms(1000);
+
+        for (uint16_t dutyCycle = 1023; dutyCycle > 0; --dutyCycle) {
+            OCR1A = dutyCycle;
+            _delay_ms(2);
+        }
+        _delay_ms(1000);
         
     }
 

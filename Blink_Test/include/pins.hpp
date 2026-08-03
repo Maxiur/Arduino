@@ -41,15 +41,3 @@ inline PinState digitalRead(volatile uint8_t &pin_reg, uint8_t pin) {
 inline void digitalToggle(volatile uint8_t &pin_reg, uint8_t pin) {
   pin_reg = (1 << pin);
 }
-
-void pwmInit(void) {
-    pinMode(DDRD, PD3, PinMode::OUTPUT);
-
-    TCCR2A |= (1 << WGM20) | (1 << WGM21);
-    TCCR2A |= (1 << COM2B1);
-    TCCR2B |= (1 << CS22);
-}
-
-void analogWritePD3(uint8_t duty) {
-    OCR2B = duty;
-}
