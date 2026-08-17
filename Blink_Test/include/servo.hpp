@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pins.hpp"
+#include "gpio.hpp"
 
 class SG90 {
 public:

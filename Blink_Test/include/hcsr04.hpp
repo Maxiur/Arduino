@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pins.hpp"
+#include "gpio.hpp"
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
