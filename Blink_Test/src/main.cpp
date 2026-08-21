@@ -10,6 +10,7 @@ constexpr int8_t DISTANCE_RANGE{15};
 inline void scan() {
     // Check left side
     SG90::setAngle(0);
+    _delay_ms(200);
     HCSR04::trigger();
     _delay_ms(60);
 
@@ -24,6 +25,7 @@ inline void scan() {
 
     // Check right side
     SG90::setAngle(180);
+    _delay_ms(200);
     HCSR04::trigger();
     _delay_ms(60);
 
@@ -53,6 +55,7 @@ int main(void) {
             uint16_t distance = HCSR04::getDistanceInCm();
 
             if (distance > 0 && distance < 15) {
+                L298N::stop();
                 scan();
                 _delay_ms(500);
                 L298N::forward();

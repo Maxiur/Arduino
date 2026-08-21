@@ -43,6 +43,11 @@ public:
     
     // range 0.5ms-2.5ms
     // OCR1A = 1000 + (angle * 4000) / 180
-    OCR1A = 1000 + ((static_cast<uint16_t>(angle) * 200) / 9);
+    // Fast dividing
+    // 4000 / 1800 ~ 22.22
+    // 22.22 * 256 = 5689
+    // So -> 5689 / 256 = 22.22
+    // Equals to x*5689 >> 8
+    OCR1A = 1000 + ((static_cast<uint32_t>(angle) * 5689) >> 8);
   }
 };

@@ -80,7 +80,6 @@ public:
     // Page 23.9.2
     // Set prescaler to 128
     // Clock 16MHz / 128 = 125,000 Hz
-    ADCSRA |= (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
     // Enable ADC and ADC auto trigger enable and ADC interrupt disable
     ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0);
 

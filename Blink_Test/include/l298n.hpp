@@ -5,13 +5,13 @@
 class L298N {
 public:
     static void init() {
-        // Left engine (IN1, IN2)
+        // Right engine (IN1, IN2)
         // Front
         pinMode(DDRD, DDD4, PinMode::OUTPUT);
         // Rear
         pinMode(DDRD, DDD5, PinMode::OUTPUT);
 
-        // Right engine
+        // Left engine
         // Front
         pinMode(DDRD, DDD6, PinMode::OUTPUT);
         // Rear
@@ -47,6 +47,7 @@ public:
         digitalWrite(PORTD, PD5, PinState::LOW);
         digitalWrite(PORTD, PD6, PinState::HIGH);
         digitalWrite(PORTD, PD7, PinState::LOW);
+        PORTD = 0x5A;
     }
 
     static void backward() { 
@@ -56,7 +57,7 @@ public:
         digitalWrite(PORTD, PD7, PinState::HIGH);
     }
 
-    static void turnLeft() {
+    static void turnRight() {
         digitalWrite(PORTD, PD4, PinState::LOW);
         digitalWrite(PORTD, PD5, PinState::HIGH);
 
@@ -64,7 +65,7 @@ public:
         digitalWrite(PORTD, PD7, PinState::LOW);
     }
 
-    static void turnRight() {
+    static void turnLeft() {
         digitalWrite(PORTD, PD4, PinState::HIGH);
         digitalWrite(PORTD, PD5, PinState::LOW);
 

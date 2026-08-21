@@ -8,7 +8,7 @@ class HCSR04 {
 public:
     static void init() {
         // Trigger Pin
-        pinMode(DDRD, DDD3, PinMode::OUTPUT);
+        pinMode(DDRB, PB0, PinMode::OUTPUT);
         // Echo Pin
         pinMode(DDRD, DDD2, PinMode::INPUT);
         
@@ -22,18 +22,22 @@ public:
     }
 
     static void trigger() {
-        digitalWrite(PORTD, PD3, PinState::HIGH);
+        digitalWrite(PORTB, PB0, PinState::HIGH);
         _delay_us(10);
-        digitalWrite(PORTD, PD3, PinState::LOW);
+        digitalWrite(PORTB, PB0, PinState::LOW);
     }
 
     static uint16_t getDistanceInCm() {
-        uint16_t duration;
+        uint16_t duration{};
+        uint8_t sreg{SREG};
         cli();
         duration = echo_duration;
         new_data = false;
-        sei();
-        return duration / 118;
+        SREG = sreg;
+        // Fast dividing
+        // 1/118 ~ 0.00847
+        // 556/65536 ~ 0.00843
+        return (static_cast<uint32_t>(duration) * 556) >> 16;
     }
 
     static bool isReady() {
@@ -60,14 +64,10 @@ public:
     }
 
 private:
-    static volatile uint16_t echo_start;
-    static volatile uint16_t echo_duration;
-    static volatile bool new_data;
+    inline static uint16_t echo_start{0};
+    inline static volatile uint16_t echo_duration{0};
+    inline static volatile bool new_data{false};
 };
-
-inline volatile uint16_t HCSR04::echo_start = 0;
-inline volatile uint16_t HCSR04::echo_duration = 0;
-inline volatile bool HCSR04::new_data = false;
 
 ISR(INT0_vect) {
     HCSR04::handleInterrupt();
