@@ -18,10 +18,11 @@ public:
         pinMode(DDRD, DDD7, PinMode::OUTPUT);
         
         // PWM to adjust engines' speed 
-        pinMode(DDRB, DDB3, PinMode::OUTPUT);
+        pinMode(DDRB, DDB3, PinMode::OUTPUT); // ENA pin
+        pinMode(DDRD, DDD3, PinMode::OUTPUT); // ENB pin
         // TCCR2A = (1 << COM2A1) | (1 << WGM21) | (1 << WGM20);        
         // Fast PWM, Clear OCR2A on compare match, 64 prescaler
-        TCCR2A = 0x83;
+        TCCR2A = 0xA3;
         TCCR2B = (1 << CS22);
         
         setSpeed(0);
@@ -31,6 +32,7 @@ public:
     static void setSpeed(uint8_t speed) {
         // range 0-255
         OCR2A = speed;
+        OCR2B = speed;
     }
 
     static void stop() {

@@ -31,6 +31,8 @@ public:
 
     // Start position (in the middle)
     OCR1A = 3000;
+
+    setAngle(0);
     }
 
   static void setAngle(uint8_t angle) {
