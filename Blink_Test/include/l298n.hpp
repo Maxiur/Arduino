@@ -47,7 +47,6 @@ public:
         digitalWrite(PORTD, PD5, PinState::LOW);
         digitalWrite(PORTD, PD6, PinState::HIGH);
         digitalWrite(PORTD, PD7, PinState::LOW);
-        PORTD = 0x5A;
     }
 
     static void backward() { 

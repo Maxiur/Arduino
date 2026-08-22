@@ -44,7 +44,7 @@ public:
         return new_data;
     }
 
-    static void handleInterrupt() {
+    static inline void handleInterrupt() {
         // Rising Edge, remember start
         if(digitalRead(PIND, PIND2) == PinState::HIGH) {
             echo_start = TCNT1;
