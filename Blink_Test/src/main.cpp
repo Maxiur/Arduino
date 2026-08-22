@@ -5,23 +5,29 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-constexpr int8_t DISTANCE_RANGE{30};
-constexpr int16_t TimeToRotate{400};
-constexpr int16_t TimeToScan{600};
+// Distance for HCSR04
+constexpr uint8_t DISTANCE_RANGE{30};
+// Time for rotate 90 degree
+constexpr uint16_t TIME_CHASSIS_ROTATE{800};
+// Time for rotate Servo by 90 degree
+constexpr uint16_t TIME_SERVO_FULL_SCAN{500};
+// Time for micro-rotate Servo
+constexpr uint16_t TIME_SERVO_MICRO_STEP{125};
+
 
 inline bool scan() {
     // Check left side
     SG90::setAngle(180);
-    _delay_ms(TimeToScan);
+    _delay_ms(TIME_SERVO_FULL_SCAN);
     HCSR04::trigger();
     _delay_ms(60);
 
     if (HCSR04::isReady()) {
         uint16_t distance = HCSR04::getDistanceInCm();
 
-        if (distance > DISTANCE_RANGE) {
+        if (distance > DISTANCE_RANGE || distance == 0) {
             L298N::turnLeft();
-            _delay_ms(TimeToRotate);
+            _delay_ms(TIME_CHASSIS_ROTATE);
             L298N::stop();
             SG90::setAngle(90);
             return true;
@@ -30,16 +36,16 @@ inline bool scan() {
 
     // Check right side
     SG90::setAngle(0);
-    _delay_ms(TimeToScan);
+    _delay_ms(TIME_SERVO_FULL_SCAN);
     HCSR04::trigger();
     _delay_ms(60);
 
     if (HCSR04::isReady()) {
         uint16_t distance = HCSR04::getDistanceInCm();
 
-        if (distance > DISTANCE_RANGE) {
+        if (distance > DISTANCE_RANGE || distance == 0) {
             L298N::turnRight();
-            _delay_ms(TimeToRotate);
+            _delay_ms(TIME_CHASSIS_ROTATE);
             L298N::stop();
             SG90::setAngle(90);
             return true;
@@ -47,10 +53,33 @@ inline bool scan() {
     }
 
     L298N::turnLeft();
-    _delay_ms(TimeToRotate * 2);
+    _delay_ms(TIME_CHASSIS_ROTATE * 2);
     L298N::stop();
     SG90::setAngle(90);
     return false;
+}
+
+inline void checkPath(uint8_t angle) {
+    SG90::setAngle(angle);
+    _delay_ms(TIME_SERVO_MICRO_STEP);
+    HCSR04::trigger();
+    _delay_ms(60);
+
+    if (HCSR04::isReady()) {
+        uint16_t distance = HCSR04::getDistanceInCm();
+
+        if (distance > 0 && distance < DISTANCE_RANGE) {
+            L298N::stop();
+
+            while (!scan()) {}
+
+            SG90::setAngle(90);
+            _delay_ms(TIME_SERVO_FULL_SCAN);
+        }
+        else {
+            L298N::forward();
+        }
+    }
 }
 
 int main(void) {
@@ -66,85 +95,10 @@ int main(void) {
     L298N::setSpeed(120);
 
     while (true) {
-        SG90::setAngle(90);
-        _delay_ms(TimeToRotate >> 2);
-        HCSR04::trigger();
-        _delay_ms(60);
-
-        if (HCSR04::isReady()) {
-            uint16_t distance = HCSR04::getDistanceInCm();
-
-            if (distance < DISTANCE_RANGE) {
-                L298N::stop();
-                if (scan()) {
-                    _delay_ms(1000);
-                    scan();
-                    L298N::forward();
-                } else {
-                    scan();
-                }
-            }
-        }
-
-        SG90::setAngle(70);
-        _delay_ms(TimeToRotate >> 2);
-        HCSR04::trigger();
-        _delay_ms(60);
-
-        if (HCSR04::isReady()) {
-            uint16_t distance = HCSR04::getDistanceInCm();
-
-            if (distance < DISTANCE_RANGE) {
-                L298N::stop();
-                if (scan()) {
-                    _delay_ms(1000);
-                    scan();
-                    L298N::forward();
-                } else {
-                    scan();
-                }
-            }
-        }
-
-        SG90::setAngle(90);
-        _delay_ms(TimeToRotate >> 2);
-        HCSR04::trigger();
-        _delay_ms(60);
-
-        if (HCSR04::isReady()) {
-            uint16_t distance = HCSR04::getDistanceInCm();
-
-            if (distance < DISTANCE_RANGE) {
-                L298N::stop();
-                if (scan()) {
-                    _delay_ms(1000);
-                    scan();
-                    L298N::forward();
-                } else {
-                    scan();
-                }
-            }
-        }
-
-        SG90::setAngle(110);
-        _delay_ms(TimeToRotate >> 2);
-        HCSR04::trigger();
-        _delay_ms(60);
-
-        if (HCSR04::isReady()) {
-            uint16_t distance = HCSR04::getDistanceInCm();
-
-            if (distance < DISTANCE_RANGE) {
-                L298N::stop();
-                if (scan()) {
-                    _delay_ms(1000);
-                    scan();
-                    L298N::forward();
-                } else {
-                    scan();
-                }
-            }
-        }
+        checkPath(90);
+        checkPath(70);
+        checkPath(90);
+        checkPath(110);
     }
     return 0;
 }   
