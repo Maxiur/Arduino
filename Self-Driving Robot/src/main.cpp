@@ -5,11 +5,22 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-// ---------------- OPTIMAL FOR 120 SPEED -------------------
+// ---------------- BASE SPEED CONFIG -------------------
+// basic velocity
+constexpr uint8_t BASE_SPEED{120};
+// basic rotate time
+constexpr uint16_t BASE_ROTATE_TIME{800};
+
+// variable velocity
+constexpr uint8_t CURRENT_SPEED{150};
+constexpr uint16_t calculateRotateTime(uint8_t speed) {
+    return (speed == 0) ? 0 : static_cast<uint16_t>((static_cast<uint32_t>(BASE_ROTATE_TIME) * BASE_SPEED) / speed);
+}
+
 // Distance for HCSR04
 constexpr uint8_t DISTANCE_RANGE{30};
 // Time for rotate 90 degree
-constexpr uint16_t TIME_CHASSIS_ROTATE{800};
+constexpr uint16_t TIME_CHASSIS_ROTATE{calculateRotateTime(CURRENT_SPEED)};
 // Time for rotate Servo by 90 degree
 constexpr uint16_t TIME_SERVO_FULL_SCAN{500};
 // Time for micro-rotate Servo
