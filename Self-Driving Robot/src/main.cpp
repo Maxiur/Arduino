@@ -5,6 +5,7 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
+// ---------------- OPTIMAL FOR 120 SPEED -------------------
 // Distance for HCSR04
 constexpr uint8_t DISTANCE_RANGE{30};
 // Time for rotate 90 degree
@@ -16,7 +17,7 @@ constexpr uint16_t TIME_SERVO_MICRO_STEP{125};
 // Time for HCSR04 trigger delay to receive data
 constexpr uint16_t TIME_HCSR_DELAY{60};
 
-
+// Measuring distance
 template <uint16_t moveTime = TIME_SERVO_FULL_SCAN>
 inline uint16_t measureDistance(uint8_t angle) {
     SG90::setAngle(angle);
@@ -27,37 +28,38 @@ inline uint16_t measureDistance(uint8_t angle) {
     return HCSR04::isReady() ? HCSR04::getDistanceInCm() : 0;
 }
 
+// Casting to real distance
 template <uint16_t moveTime = TIME_SERVO_FULL_SCAN>
-inline bool isPathClear(uint8_t angle) {
+inline uint16_t getClearDistance(uint8_t angle) {
     uint16_t distance = measureDistance<moveTime>(angle);
     // if there is huge distance, HCSR04 returns 0
-    return (distance > DISTANCE_RANGE || distance == 0);
+    return (distance == 0) ? UINT16_MAX : distance;
+}
+
+// Is path valid
+template <uint16_t moveTime = TIME_SERVO_FULL_SCAN>
+inline bool isPathClear(uint8_t angle) {
+    return getClearDistance<moveTime>(angle) > DISTANCE_RANGE;
 }
 
 inline bool scan() {
-    // Check left side
-    if (isPathClear(180)) {
-        L298N::turnLeft();
-        _delay_ms(TIME_CHASSIS_ROTATE);
-        L298N::stop();
-        SG90::setAngle(90);
-        return true;
-    }
+    uint16_t leftDistance{getClearDistance(180)};
+    uint16_t rightDistance{getClearDistance(0)};
+    uint16_t maxDistance{(leftDistance > rightDistance) ? leftDistance : rightDistance};
 
-    // Check right side
-    if (isPathClear(0)) {
-        L298N::turnRight();
+    if (maxDistance > DISTANCE_RANGE) {
+        (leftDistance > rightDistance) ? L298N::turnLeft() : L298N::turnRight();
+        SG90::setAngle(90);
         _delay_ms(TIME_CHASSIS_ROTATE);
         L298N::stop();
-        SG90::setAngle(90);
         return true;
     }
 
     // Both sides are blocked -> do 180 degree rotate
     L298N::turnLeft();
+    SG90::setAngle(90);
     _delay_ms(TIME_CHASSIS_ROTATE * 2);
     L298N::stop();
-    SG90::setAngle(90);
     return false;
 }
 
@@ -66,9 +68,6 @@ inline void checkPath(uint8_t angle) {
         L298N::stop();
 
         while (!scan()) {}
-
-        SG90::setAngle(90);
-        _delay_ms(TIME_SERVO_FULL_SCAN);
     }
     else {
         L298N::forward();
@@ -89,9 +88,9 @@ int main(void) {
 
     while (true) {
         checkPath(90);
-        checkPath(70);
+        checkPath(65);
         checkPath(90);
-        checkPath(110);
+        checkPath(115);
     }
     return 0;
 }   
