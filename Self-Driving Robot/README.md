@@ -10,6 +10,12 @@ An autonomous mini-tank powered by Arduino (in native C++/AVR), designed to navi
 
 ---
 
+## Wiring Scheme 
+
+![Scheme View](./images/scheme.png)
+
+---
+
 ## 📂 Code Structure
 
 The main logic relies on a modular approach to peripherals:
